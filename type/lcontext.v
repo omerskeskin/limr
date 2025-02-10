@@ -39,6 +39,8 @@ Inductive tctxR: tctx -> label -> tctx -> Prop :=
 
 Definition tctxRE l c := exists c', tctxR c l c'.
 
+Definition tctxRF l c c' := tctxR c l c'.
+
 CoInductive coseq (A: Type): Type :=
   | conil : coseq A
   | cocons: A -> coseq A -> coseq A.
@@ -82,6 +84,12 @@ Definition fairness_inner (pt: Path): Prop :=
 
 Definition fair_gfp := alwaysC (fairness_inner).
 
+Definition liveness_inner (pt: Path): Prop :=
+  (forall p q s, CextP (tctxRE (lsend p q (Some s))) pt -> eventually (immTrans p q) pt) /\
+  (forall p q s, CextP (tctxRE (lrecv q p (Some s))) pt -> eventually (immTrans p q) pt).
+
+Definition live_gfp := alwaysC (liveness_inner).
+
 (* example *)
 CoFixpoint inf_path := cocons (tnil, (lcomm "p" "q")) inf_path.
 
@@ -110,6 +118,13 @@ Proof. red.
        easy.
        right. exact CIH.
 Qed.
+
+Inductive safe (R: tctx -> Prop): tctx -> Prop :=
+  | sasr   : forall p q s s' c, tctxRE (lsend p q (Some s)) c -> tctxRE (lrecv q p (Some s')) c ->
+                                tctxRE (lcomm p q) c -> safe R c
+  | saimpl:  forall p q c c', R c -> tctxRF (lcomm p q) c c' -> safe R c'.
+
+Definition safeC c := paco1 safe bot1 c.
 
 (* Definition alwaysN := @alwaysG nat.
 
