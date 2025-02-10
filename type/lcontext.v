@@ -37,13 +37,102 @@ Inductive tctxR: tctx -> label -> tctx -> Prop :=
            tctxR g l g' ->
            tctxR (tcons p T g) l (tcons p T g').
 
-Definition tctxRE c l := exists c', tctxR c l c'.
+Definition tctxRE l c := exists c', tctxR c l c'.
 
-CoInductive lbl_stream (A: Type) (B:Type): Type :=
-  | cnil : lbl_stream A B
-  | ccons: A -> B -> lbl_stream A B -> lbl_stream A B.
+CoInductive coseq (A: Type): Type :=
+  | conil : coseq A
+  | cocons: A -> coseq A -> coseq A.
 
-Definition lblst_unf (A:Type) (B:Type) (pt:lbl_stream A B): lbl_stream A B :=
+Arguments conil {_}.
+Arguments cocons {_} _ _.
+
+Definition coseq_id {A: Type} (c: coseq A): coseq A :=
+  match c with
+    | conil       => conil
+    | cocons x xs => cocons x xs
+  end.
+
+Lemma coseq_eq: forall {A: Type} (c: coseq A), c = coseq_id c.
+Proof. destruct c; easy. Defined.
+
+Notation Path := (coseq (tctx*label)) (only parsing).
+
+Inductive eventually {A: Type} (F: coseq A -> Prop): coseq A -> Prop :=
+  | evh: forall xs, F xs -> eventually F xs
+  | evc: forall x xs, eventually F xs -> eventually F (cocons x xs).
+
+Definition eventualyP := @eventually (tctx*label).
+
+Inductive alwaysG {A: Type} (F: coseq A -> Prop) (R: coseq A -> Prop): coseq A -> Prop :=
+  | alwn: F conil -> alwaysG F R conil
+  | alwc: forall x xs, F (cocons x xs) -> R xs -> alwaysG F R (cocons x xs).
+
+Definition alwaysP := @alwaysG (tctx*label).
+
+Definition alwaysC F p := paco1 (alwaysP F) bot1 p.
+
+Inductive CextP (F: tctx -> Prop): Path -> Prop :=
+  | holdc: forall c l p, F c -> CextP F (cocons (c,l) p).
+
+Inductive immTrans: part -> part -> Path -> Prop :=
+  | immTc: forall p q c pt, immTrans p q (cocons (c,(lcomm p q)) pt).
+
+Definition fairness_inner (pt: Path): Prop :=
+  forall p q, CextP (tctxRE (lcomm p q)) pt -> eventually (immTrans p q) pt.
+
+Definition fair_gfp := alwaysC (fairness_inner).
+
+(* example *)
+CoFixpoint inf_path := cocons (tnil, (lcomm "p" "q")) inf_path.
+
+Lemma nilDec: forall g1 g2, appc g1 g2 = tnil -> g1 = tnil /\ g2 = tnil.
+Proof. intro g1.
+       induction g1; intros.
+       - simpl in H. subst. easy.
+       - simpl in H.
+         easy.
+Qed.
+
+Theorem inf_fair: fair_gfp inf_path.
+Proof. red.
+       pcofix CIH.
+       rewrite(coseq_eq inf_path). simpl.
+       pfold.
+       constructor.
+       constructor.
+       inversion H. subst.
+       inversion H1.
+       inversion H0. subst.
+       rewrite H2.
+       apply nilDec in H2.
+       destruct H2 as (H2a, H2b).
+       subst.
+       easy.
+       right. exact CIH.
+Qed.
+
+(* Definition alwaysN := @alwaysG nat.
+
+Definition alwaysCN F p := paco1 (alwaysN F) bot1 p.
+
+CoFixpoint Nnil := cocons 5 Nnil.
+
+Variant not_nil {A: Type}: (coseq A) -> Prop :=
+  | nnn : forall x xs, not_nil (cocons x xs).
+
+Lemma easyTry: alwaysCN not_nil Nnil.
+Proof. pcofix CIH.
+       pfold.
+       rewrite(coseq_eq Nnil). simpl.
+       constructor. constructor.
+       right. easy.
+Qed. *)
+
+(* CoInductive stream (A: Type) (B:Type): Type :=
+  | cnil : stream A B
+  | ccons: A -> B -> stream A B -> stream A B.
+
+Definition lblst_unf (A:Type) (B:Type) (pt: stream A B): stream A B :=
   match pt with
   | cnil => cnil A B
   | ccons c l p => ccons A B c l p end.
@@ -74,7 +163,13 @@ Definition fair (pt: path): Prop :=
     (onths k pt)     = Some c'  ->
     (onths (S k) pt) = Some c'' ->
     k >= n /\ tctxR c' (lcomm p q) c''.
-    
+
+
+Inductive eventually (P: path -> Prop): Path -> Prop :=
+  
+
+
+
 Definition path_prop := path -> Prop.
 Definition context_prop := tctx -> Prop.
 Inductive eventually (F : path_prop) : path_prop:=
@@ -119,8 +214,9 @@ Qed.
 Variant ctx_to_path_prop (cp:context_prop): path_prop :=
   | pt_head : forall c l p, cp c -> ctx_to_path_prop cp (ccons c l p).
 
+
 (*the transition enabled relation extended to paths*)
-Definition trans_enabled_path (l:label) : path_prop :=ctx_to_path_prop (flip tctxRE l).
+Definition trans_enabled_path (l:label) : path_prop := ctx_to_path_prop (flip tctxRE l).
 (* fairness= always (enabled (p,q) -> eventually (transmitted p q))*)
 Definition fairness_inner (pt:path) : Prop := 
   forall p q, trans_enabled_path (lcomm p q) pt -> eventually (imm_trans p q) pt.
@@ -148,4 +244,4 @@ Proof.
     right.
     apply CIH.
   }
-Qed.
+Qed. *)
