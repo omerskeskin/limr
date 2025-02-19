@@ -58,7 +58,7 @@ Inductive tctxR: tctx -> label -> tctx -> Prop :=
            tctxR (appc g1 g2) (lcomm p q) (appc g1' g2')
   | Rvar : forall g l g' p T,
            tctxR g l g' ->
-           tctxR (appc g [(p,T)]) l (appc g' [(p,T)]).
+           tctxR ((p,T)::g) l ((p,T)::g').
 
 Definition tctxRE l c := exists c', tctxR c l c'.
 
@@ -144,9 +144,7 @@ Proof. red.
        apply nilDec in H2.
        destruct H2 as (H2a, H2b).
        subst.
-       inversion H6. subst. apply appcNnil in H2. easy.
-       subst. apply appcNnil in H2. easy.
-       simpl.
+       inversion H6.
        right. exact CIH.
 Qed.
 
@@ -176,9 +174,7 @@ Proof. intros.
            ++ subst. simpl. simpl in *.
               inversion IHtctxR2. subst. 
               rewrite !dom_app. simpl.
-              inversion IHtctxR1.
-              rewrite !dom_app in H5.
-              inversion H5. rewrite H6. easy.
+              inversion IHtctxR1. easy.
          + subst. 
            inversion H0.
            ++ subst. simpl.
@@ -188,10 +184,8 @@ Proof. intros.
               rewrite !dom_app.
               inversion IHtctxR1. subst.
               inversion IHtctxR2. subst. simpl. subst.
-              rewrite !dom_app in H6 H7.
-              inversion H6. rewrite H8.
-              inversion H7. rewrite H9. easy.
-       - simpl. rewrite !dom_app. rewrite IHtctxR. easy.
+              rewrite H7. easy.
+       - simpl. rewrite IHtctxR. easy.
 Qed.
 
 Lemma _6_11a: forall p q (c c': ctx) s, tctxR (@und c) (lsend p q (Some s)) (@und c') -> 
