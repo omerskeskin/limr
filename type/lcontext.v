@@ -5,10 +5,7 @@ Require Import List String Coq.Arith.PeanoNat Morphisms Relations.
 Import ListNotations. 
 
 Notation tctx := (list (part*ltt)) (only parsing).
-(* Inductive tctx: Type :=
-  | tnil : tctx
-  | tcons: part -> ltt -> tctx -> tctx.
- *)
+
 Class ctx: Type :=
   mkCt
   { und: tctx;
@@ -55,10 +52,63 @@ Inductive tctxR: tctx -> label -> tctx -> Prop :=
            tctxR g1 (lsend p q (Some s)) g1'  ->
            tctxR g2 (lrecv q p (Some s')) g2' ->
            subsort s s' ->
-           tctxR (appc g1 g2) (lcomm p q) (appc g1' g2')
-  | Rvar : forall g l g' p T,
+           tctxR (g1 ++ g2) (lcomm p q) (g1' ++ g2')
+  | RvarI: forall g l g' p T,
+           (In p (map fst g) -> False) ->
+           (In p (map fst g') -> False) ->
            tctxR g l g' ->
-           tctxR ((p,T)::g) l ((p,T)::g').
+           tctxR ((p,T)::g) l ((p,T)::g')
+  | RvarO: forall g l g' p T,
+           (In p (map fst g) -> False) ->
+           (In p (map fst g') -> False) ->
+           tctxR g l g' ->
+           tctxR (g++[(p,T)]) l (g'++[(p,T)]).
+
+Lemma nilDec: forall (g1 g2: tctx), g1 ++ g2 = nil -> g1 = nil /\ g2 = nil.
+Proof. intro g1.
+       induction g1; intros.
+       - simpl in H. subst. easy.
+       - simpl in H. destruct a. easy.
+Qed.
+
+Lemma nNil: forall {A: Type} (g: list A) a, (g ++ [a])%SEQ = [] -> False.
+Proof. intros A g.
+       induction g; intros.
+       - simpl in H. easy.
+       - simpl in H. easy.
+Qed.
+
+Lemma eCHL: forall l x xs, tctxR [] l (x :: xs) -> False.
+Proof. intros.
+       inversion H. subst.
+       apply nilDec in H0.
+       destruct H0 as (Ha, Hb).
+       subst.
+       inversion H3. apply nNil in H0. easy.
+       apply nNil in H0. easy.
+Qed.
+
+Lemma eCHR: forall l x xs, tctxR (x :: xs) l [] -> False.
+Proof. intros.
+       inversion H. subst.
+       apply nilDec in H1.
+       destruct H1 as (Ha, Hb).
+       subst.
+       inversion H3.
+       apply nNil in H1. easy.
+       apply nNil in H1. easy.
+Qed.
+
+Lemma eCHB: forall l, tctxR [] l [] -> False.
+Proof. intros.
+       inversion H. subst.
+       apply nilDec in H0.
+       destruct H0 as (Ha, Hb).
+       subst.
+       inversion H3.
+       apply nNil in H0. easy.
+       apply nNil in H0. easy.
+Qed.
 
 Definition tctxRE l c := exists c', tctxR c l c'.
 
@@ -116,13 +166,6 @@ Definition live_gfp := alwaysC (liveness_inner).
 (* example *)
 CoFixpoint inf_path := cocons ((@nil (string * ltt)), (lcomm "p" "q")) inf_path.
 
-Lemma nilDec: forall g1 g2, appc g1 g2 = nil -> g1 = nil /\ g2 = nil.
-Proof. intro g1.
-       induction g1; intros.
-       - simpl in H. subst. easy.
-       - simpl in H. destruct a. easy.
-Qed.
-
 Lemma appcNnil: forall g p T, appc g [(p,T)] = nil -> False.
 Proof. intro g.
        induction g; intros.
@@ -144,7 +187,10 @@ Proof. red.
        apply nilDec in H2.
        destruct H2 as (H2a, H2b).
        subst.
-       inversion H6.
+       case_eq g1'; intros.
+       + subst. apply eCHB in H6. easy.
+       + subst. apply eCHL in H6. easy.
+       apply nNil in H2. easy.
        right. exact CIH.
 Qed.
 
@@ -155,7 +201,7 @@ Inductive safe (R: tctx -> Prop): tctx -> Prop :=
 
 Definition safeC c := paco1 safe bot1 c.
 
-Lemma dom_app: forall c c', dom (appc c c') = dom c ++ dom c'.
+Lemma dom_app: forall c c', dom (c ++ c') = dom c ++ dom c'.
 Proof. intro c.
        induction c; intros.
        - simpl. easy.
@@ -172,21 +218,31 @@ Proof. intros.
          + inversion H0. 
            ++ subst. simpl. easy.
            ++ subst. simpl. simpl in *.
-              inversion IHtctxR2. subst. 
+              inversion IHtctxR2. subst.
+              rewrite dom_app.
+              simpl.
+              rewrite dom_app. simpl.
+              rewrite !app_comm_cons. 
+              rewrite IHtctxR1. easy.
+              rewrite <- H10, <- H6 in IHtctxR1.
+              rewrite !dom_app in IHtctxR1.
+              simpl in IHtctxR1.
               rewrite !dom_app. simpl.
-              inversion IHtctxR1. easy.
-         + subst. 
-           inversion H0.
-           ++ subst. simpl.
-              simpl in *.
-              inversion IHtctxR2. subst. easy. 
-           ++ subst. simpl in *.
-              rewrite !dom_app.
-              inversion IHtctxR1. subst.
-              inversion IHtctxR2. subst. simpl. subst.
-              rewrite H7. easy.
-       - simpl. rewrite IHtctxR. easy.
+              simpl.
+              rewrite IHtctxR1. easy.
+              rewrite !dom_app. simpl.
+              rewrite IHtctxR1. 
+              rewrite <- H8, <- H6 in IHtctxR2.
+              simpl in IHtctxR2.
+              rewrite IHtctxR2. easy.
+              rewrite dom_app.
+              setoid_rewrite dom_app at 2.
+              rewrite H6 H8.
+              rewrite IHtctxR1 IHtctxR2. easy.
+              simpl. rewrite IHtctxR. easy.
+              rewrite !dom_app. rewrite IHtctxR. easy.
 Qed.
+
 
 Lemma _6_11a: forall p q (c c': ctx) s, tctxR (@und c) (lsend p q (Some s)) (@und c') -> 
  exists xs n T, typeof (@und c) p = Some (ltt_send q xs) /\ onth n xs = Some (s, T). 
@@ -195,6 +251,6 @@ Proof. intros.
        - subst. simpl. rewrite eqb_refl.
          exists xs. exists n. exists T. easy.
        - subst. simpl.
-         inversion H3.
+         inversion H5.
 Admitted.
-            
+
