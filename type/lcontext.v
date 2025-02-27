@@ -9,15 +9,15 @@ Require Export Coq.Structures.OrderedTypeEx.
 
 Module M := FMapAVL.Make(Nat_as_OT).
 
-Definition tctx2: Type := M.t (part*ltt).
+Definition tctx2: Type := M.t ltt.
 
-Definition find (k: nat) (m: tctx2) := 
-  M.find k m.
+Definition find (p: part) (m: tctx2) := 
+  M.find p m.
 
-Definition add (p: nat*ltt) (m: tctx2) :=
-  M.add (fst p) p m.
+Definition add (p: part) (T: ltt) (m: tctx2) :=
+  M.add p T m.
 
-Definition empty := M.empty (part*ltt).
+Definition empty := M.empty (ltt).
 
 Notation tctx := (list (part*ltt)) (only parsing).
 
