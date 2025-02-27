@@ -265,17 +265,18 @@ Print M.
 
 Definition tctx2: Type := M.t ltt.
 
-(* Definition e1 := M.add 0 ltt_end (M.add 1 ltt_end M.empty).
-Definition e2 := M.add 0 (ltt_send 1 [Some(sint, ltt_end)]) (M.add 4 ltt_end M.empty).
+
 
 Definition both (z: nat) (o:option ltt) (o':option ltt) :=
  match o,o' with 
    | Some _, None   => o
    | None, Some _   => o'
-   | Some _, Some _ => None
    | _,_            => None
  end.
 
+(*
+Definition e1 := M.add 0 ltt_end (M.add 1 ltt_end M.empty).
+Definition e2 := M.add 2 (ltt_send 1 [Some(sint, ltt_end)]) (M.add 4 ltt_end M.empty).
 Definition e3 := M.merge both e1 e2.
 Compute M.bindings e1.
 Compute M.bindings e2.
@@ -283,7 +284,13 @@ Compute M.bindings e3.
 
 Print M.
  *)
- 
+
+Check M.mem.
+Check M.for_all.
+
+Definition disjoint (g1 g2: tctx2): Prop :=
+  forall x (Ina: M.mem x g1 = true) (Inb: M.mem x g2 = true), False.
+
 Inductive tctxR2: tctx2 -> label -> tctx2 -> Prop :=
   | Rsend2: forall p q xs n s T,
             p <> q ->
@@ -298,11 +305,15 @@ Inductive tctxR2: tctx2 -> label -> tctx2 -> Prop :=
             tctxR2 g1 (lsend p q (Some s)) g1'  ->
             tctxR2 g2 (lrecv q p (Some s')) g2' ->
             subsort s s' ->
-            tctxR2 (M.merge both g1 g2) (lcomm p q) (M.merge both g1' g2')            
+            disjoint g1 g2 ->
+            disjoint g1' g2' ->
+            tctxR2 (M.merge both g1 g2) (lcomm p q) (M.merge both g1' g2')
   | RvarI2: forall g l g' p T,
             tctxR2 g l g' ->
             M.mem p g = false ->
             tctxR2 (M.add p T g) l (M.add p T g').
+
+Definition dom2 (g: tctx2): list nat := map fst (M.bindings g).
 
 
 
