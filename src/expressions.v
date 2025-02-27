@@ -3,7 +3,7 @@ Require Import List String ZArith.
 Notation fin := nat.
 
 
-Notation part := string (only parsing).
+Notation part := nat (only parsing).
 Notation label := nat (only parsing).
 
 Variant value: Type :=

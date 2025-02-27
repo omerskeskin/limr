@@ -1,8 +1,23 @@
-From mathcomp Require Import ssreflect.seq all_ssreflect.
+(* From mathcomp Require Import ssreflect.seq all_ssreflect. *)
 From Paco Require Import paco pacotac.
 From LIMR Require Import src.expressions src.header type.local.
 Require Import List String Coq.Arith.PeanoNat Morphisms Relations.
 Import ListNotations. 
+
+Require Export FMapAVL.
+Require Export Coq.Structures.OrderedTypeEx.
+
+Module M := FMapAVL.Make(Nat_as_OT).
+
+Definition tctx2: Type := M.t (part*ltt).
+
+Definition find (k: nat) (m: tctx2) := 
+  M.find k m.
+
+Definition add (p: nat*ltt) (m: tctx2) :=
+  M.add (fst p) p m.
+
+Definition empty := M.empty (part*ltt).
 
 Notation tctx := (list (part*ltt)) (only parsing).
 
@@ -16,7 +31,7 @@ Class ctx: Type :=
 Fixpoint typeof (c: tctx) (p: part): option ltt :=
   match c with
     | nil         => None
-    | (q,t) :: c' => if eqb p q then Some t else typeof c' p
+    | (q,t) :: c' => if Nat.eqb p q then Some t else typeof c' p
   end. 
 
 Fixpoint dom (c: tctx): list part :=
@@ -71,7 +86,7 @@ Proof. intro g1.
        - simpl in H. destruct a. easy.
 Qed.
 
-Lemma nNil: forall {A: Type} (g: list A) a, (g ++ [a])%SEQ = [] -> False.
+Lemma nNil: forall {A: Type} (g: list A) a, (g ++ [a]) = [] -> False.
 Proof. intros A g.
        induction g; intros.
        - simpl in H. easy.
@@ -164,7 +179,7 @@ Definition liveness_inner (pt: Path): Prop :=
 Definition live_gfp := alwaysC (liveness_inner).
 
 (* example *)
-CoFixpoint inf_path := cocons ((@nil (string * ltt)), (lcomm "p" "q")) inf_path.
+CoFixpoint inf_path := cocons ((@nil (nat * ltt)), (lcomm 0 1)) inf_path.
 
 Lemma appcNnil: forall g p T, appc g [(p,T)] = nil -> False.
 Proof. intro g.
@@ -237,8 +252,9 @@ Proof. intros.
               rewrite IHtctxR2. easy.
               rewrite dom_app.
               setoid_rewrite dom_app at 2.
-              rewrite H6 H8.
-              rewrite IHtctxR1 IHtctxR2. easy.
+              rewrite H6.
+              rewrite H8.
+              rewrite IHtctxR1, IHtctxR2. easy.
               simpl. rewrite IHtctxR. easy.
               rewrite !dom_app. rewrite IHtctxR. easy.
 Qed.
@@ -248,7 +264,7 @@ Lemma _6_11a: forall p q (c c': ctx) s, tctxR (@und c) (lsend p q (Some s)) (@un
  exists xs n T, typeof (@und c) p = Some (ltt_send q xs) /\ onth n xs = Some (s, T). 
 Proof. intros.
        inversion H.
-       - subst. simpl. rewrite eqb_refl.
+       - subst. simpl. rewrite Nat.eqb_refl.
          exists xs. exists n. exists T. easy.
        - subst. simpl.
          inversion H5.

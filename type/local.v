@@ -45,12 +45,12 @@ Section local_ind_ref.
     - apply P_send.
       induction l; try easy.
       constructor; try easy.
-      destruct a. right. destruct p. exists s0. exists l0. split; try easy.
+      destruct a. right. destruct p. exists s. exists l0. split; try easy.
       left. easy.
     - apply P_recv.
       induction l; try easy.
       constructor; try easy.
-      destruct a. right. destruct p. exists s0. exists l0. split; try easy.
+      destruct a. right. destruct p. exists s. exists l0. split; try easy.
       left. easy.
     - apply P_rec; easy.
   Qed.
@@ -149,7 +149,7 @@ Proof.
       - apply gl_end.
       - apply gl_send.
         inversion H. subst.
-        revert IHm IHn H H0 H4. revert m n k s.
+        revert IHm IHn H H0 H4. revert m n k n0.
         induction l; intros; try easy.
         inversion H4. subst.
         constructor.
@@ -157,11 +157,11 @@ Proof.
           destruct H1. destruct H1. destruct H1. subst. right.
           exists x. exists x0. split; try easy.
           apply IHn with (m := m.+1); try easy.
-        - apply IHl with (m := m) (s := s); try easy.
+        - apply IHl with (m := m) (n0 := n0); try easy.
         apply gl_send. easy.
       - apply gl_recv.
         inversion H. subst.
-        revert IHm IHn H H0 H4. revert m n k s.
+        revert IHm IHn H H0 H4. revert m n k n0.
         induction l; intros; try easy.
         inversion H4. subst.
         constructor.
@@ -169,7 +169,7 @@ Proof.
           destruct H1. destruct H1. destruct H1. subst. right.
           exists x. exists x0. split; try easy.
           apply IHn with (m := m.+1); try easy.
-        - apply IHl with (m := m) (s := s); try easy.
+        - apply IHl with (m := m) (n0 := n0); try easy.
         apply gl_recv. easy.
       - inversion H. subst.
         destruct k; try easy.
@@ -467,22 +467,22 @@ Lemma stTrans: forall l1 l2 l3, subtypeC l1 l2 -> subtypeC l2 l3 -> subtypeC l1 
       specialize(subtype_end l2 H0); intros. subst.
       specialize(subtype_end l3 H1); intros. subst. apply sub_end.
     - subst.
-      specialize(subtype_recv l2 s l H0); intros. destruct H. subst.
-      specialize(subtype_recv l3 s x H1); intros. destruct H. subst.
+      specialize(subtype_recv l2 n l H0); intros. destruct H. subst.
+      specialize(subtype_recv l3 n x H1); intros. destruct H. subst.
       
-      specialize(subtype_recv_inv s x x0 H1); intros.
-      specialize(subtype_recv_inv s l x H0); intros.
+      specialize(subtype_recv_inv n x x0 H1); intros.
+      specialize(subtype_recv_inv n l x H0); intros.
       
       constructor.
       
       apply stTrans_helper_recv with (x := x); try easy.
       
     - subst.
-      specialize(subtype_send l2 s l H0); intros. destruct H. subst.
-      specialize(subtype_send l3 s x H1); intros. destruct H. subst.
+      specialize(subtype_send l2 n l H0); intros. destruct H. subst.
+      specialize(subtype_send l3 n x H1); intros. destruct H. subst.
       
-      specialize(subtype_send_inv s x x0 H1); intros.
-      specialize(subtype_send_inv s l x H0); intros.
+      specialize(subtype_send_inv n x x0 H1); intros.
+      specialize(subtype_send_inv n l x H0); intros.
       
       constructor.
       apply stTrans_helper_send with (x := x); try easy.
@@ -858,7 +858,7 @@ Proof.
   assert (exists T, multiS betaL (l_rec x) T /\
   (T = l_end \/
    (exists
-      (p : string) (lis : seq.seq (option (sort * local))),
+      (p : nat) (lis : seq.seq (option (sort * local))),
       T = l_send p lis \/ T = l_recv p lis))).
   {
     clear H. revert H0. revert x. induction x0; intros; try easy.
@@ -867,12 +867,12 @@ Proof.
     - exists l_end.
       split. apply multi_sing. constructor; try easy.
       left. easy.
-    - exists (l_send s l).
+    - exists (l_send n l).
       split. apply multi_sing. constructor; try easy.
-      right. exists s. exists l. left. easy.
-    - exists (l_recv s l).
+      right. exists n. exists l. left. easy.
+    - exists (l_recv n l).
       split. apply multi_sing. constructor; try easy.
-      right. exists s. exists l. right. easy.
+      right. exists n. exists l. right. easy.
     - specialize(IHx0 Q H4). 
       destruct IHx0. destruct H. exists x1. split; try easy.
       apply multi_step with (y := (l_rec Q)).
