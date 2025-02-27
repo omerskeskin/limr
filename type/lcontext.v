@@ -2,22 +2,7 @@
 From Paco Require Import paco pacotac.
 From LIMR Require Import src.expressions src.header type.local.
 Require Import List String Coq.Arith.PeanoNat Morphisms Relations.
-Import ListNotations. 
-
-Require Export FMapAVL.
-Require Export Coq.Structures.OrderedTypeEx.
-
-Module M := FMapAVL.Make(Nat_as_OT).
-
-Definition tctx2: Type := M.t ltt.
-
-Definition find (p: part) (m: tctx2) := 
-  M.find p m.
-
-Definition add (p: part) (T: ltt) (m: tctx2) :=
-  M.add p T m.
-
-Definition empty := M.empty (ltt).
+Import ListNotations.
 
 Notation tctx := (list (part*ltt)) (only parsing).
 
@@ -269,4 +254,56 @@ Proof. intros.
        - subst. simpl.
          inversion H5.
 Admitted.
+
+(* here *)
+
+From MMaps Require Import MMaps.
+
+Module M := MMaps.RBT.Make(Nat).
+
+Print M.
+
+Definition tctx2: Type := M.t ltt.
+
+(* Definition e1 := M.add 0 ltt_end (M.add 1 ltt_end M.empty).
+Definition e2 := M.add 0 (ltt_send 1 [Some(sint, ltt_end)]) (M.add 4 ltt_end M.empty).
+
+Definition both (z: nat) (o:option ltt) (o':option ltt) :=
+ match o,o' with 
+   | Some _, None   => o
+   | None, Some _   => o'
+   | Some _, Some _ => None
+   | _,_            => None
+ end.
+
+Definition e3 := M.merge both e1 e2.
+Compute M.bindings e1.
+Compute M.bindings e2.
+Compute M.bindings e3.
+
+Print M.
+ *)
+ 
+Inductive tctxR2: tctx2 -> label -> tctx2 -> Prop :=
+  | Rsend2: forall p q xs n s T,
+            p <> q ->
+            onth n xs = Some (s, T) ->
+            tctxR2 (M.add p (ltt_send q xs) M.empty) (lsend p q (Some s)) (M.add p T M.empty)
+  | Rrecv2: forall p q xs n s T,
+            p <> q ->
+            onth n xs = Some (s, T) ->
+            tctxR2 (M.add p (ltt_recv q xs) M.empty) (lrecv p q (Some s)) (M.add p T M.empty)
+  | Rcomm2: forall p q g1 g1' g2 g2' s s', 
+            p <> q ->
+            tctxR2 g1 (lsend p q (Some s)) g1'  ->
+            tctxR2 g2 (lrecv q p (Some s')) g2' ->
+            subsort s s' ->
+            tctxR2 (M.merge both g1 g2) (lcomm p q) (M.merge both g1' g2')            
+  | RvarI2: forall g l g' p T,
+            tctxR2 g l g' ->
+            M.mem p g = false ->
+            tctxR2 (M.add p T g) l (M.add p T g').
+
+
+
 

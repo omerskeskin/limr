@@ -6,16 +6,16 @@ Import ListNotations.
 Print ltt.
 
 Open Scope string_scope.
-Definition prt_p:="p".
-Definition prt_q:="q".
-Definition prt_r:="r".
+Definition prt_p:=0.
+Definition prt_q:=1.
+Definition prt_r:=2.
 Check [Some prt_p].
 Check ltt_send.
 
 Check (sint,ltt_end).
 CoFixpoint T_p := ltt_send prt_q [Some (sint,T_p); Some (sint,ltt_end)].
 CoFixpoint T_q := ltt_recv prt_p [Some (sint,T_q); Some (sint, ltt_send prt_r [Some (sint,ltt_end)])].
-CoFixpoint T_r := ltt_recv prt_q [Some (sint,ltt_end)].
+Definition T_r := ltt_recv prt_q [Some (sint,ltt_end)].
 
 Definition gamma_lst := [(prt_p,T_p); (prt_q,T_q); (prt_r,T_r)].
 Theorem no_dup_gamma : NoDup (map fst gamma_lst).
