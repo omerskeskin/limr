@@ -260,12 +260,9 @@ Admitted.
 From MMaps Require Import MMaps.
 
 Module M := MMaps.RBT.Make(Nat).
-
-Print M.
+Module MF := MMaps.Facts.Properties Nat M.
 
 Definition tctx2: Type := M.t ltt.
-
-
 
 Definition both (z: nat) (o:option ltt) (o':option ltt) :=
  match o,o' with 
@@ -285,11 +282,8 @@ Compute M.bindings e3.
 Print M.
  *)
 
-Check M.mem.
-Check M.for_all.
-
-Definition disjoint (g1 g2: tctx2): Prop :=
-  forall x (Ina: M.mem x g1 = true) (Inb: M.mem x g2 = true), False.
+Definition disj_merge (g1 g2:tctx2) (H:MF.Disjoint g1 g2) : tctx2 := 
+  M.merge both g1 g2.  
 
 Inductive tctxR2: tctx2 -> label -> tctx2 -> Prop :=
   | Rsend2: forall p q xs n s T,
@@ -300,20 +294,222 @@ Inductive tctxR2: tctx2 -> label -> tctx2 -> Prop :=
             p <> q ->
             onth n xs = Some (s, T) ->
             tctxR2 (M.add p (ltt_recv q xs) M.empty) (lrecv p q (Some s)) (M.add p T M.empty)
-  | Rcomm2: forall p q g1 g1' g2 g2' s s', 
+  | Rcomm2: forall p q g1 g1' g2 g2' s s' (H1: MF.Disjoint g1 g2) (H2: MF.Disjoint g1' g2'), 
             p <> q ->
             tctxR2 g1 (lsend p q (Some s)) g1'  ->
             tctxR2 g2 (lrecv q p (Some s')) g2' ->
             subsort s s' ->
-            disjoint g1 g2 ->
-            disjoint g1' g2' ->
-            tctxR2 (M.merge both g1 g2) (lcomm p q) (M.merge both g1' g2')
+            tctxR2 (disj_merge g1 g2 H1) (lcomm p q) (disj_merge g1' g2' H2)
   | RvarI2: forall g l g' p T,
             tctxR2 g l g' ->
             M.mem p g = false ->
             tctxR2 (M.add p T g) l (M.add p T g').
 
 Definition dom2 (g: tctx2): list nat := map fst (M.bindings g).
+Lemma opt_lem1 : forall A (x:option A), x <> None -> exists y, x=Some y.
+Proof.
+  intros; destruct x; try easy. exists a. reflexivity.  
+Qed.
+
+Lemma opt_lem2 : forall A (x:option A) (y:A), x=Some y -> x<> None.
+Proof.
+  intros; destruct x; try easy.  
+Qed.
+
+Lemma in_find_sm : forall x (m:tctx2), M.In x m <-> exists y, M.find x m =Some y. 
+Proof.
+  intros.
+  split.
+  {
+    intros. apply MF.in_find in H. apply opt_lem1 in H. easy.
+  }
+  {
+    intros.
+    destruct H.
+    apply opt_lem2 in H.
+    apply MF.in_find in H. easy.
+  }
+Qed.
+Lemma spc_merge_spec1: forall (g g': tctx2) x (Hdisj: MF.Disjoint g g'),  M.In x g\/ M.In x g' -> (M.In x (disj_merge g g' Hdisj)).
+Proof.
+  intros.
+  destruct H.
+  {
+    specialize (M.merge_spec1 both (@or_introl (M.In x g) (M.In x g') H)) as H_spc.
+    destruct H_spc. destruct H0. subst.
+    Check MF.in_find.
+    apply MF.in_find.
+    unfold disj_merge.
+    (*prove: both x (M.find x g) (M.find x g') <>=None*)
+    assert(Hres:both x (M.find x g) (M.find x g') <> None).
+    {
+      apply MF.in_find in H.
+      unfold MF.Disjoint in Hdisj.
+      specialize (Hdisj x).
+      apply MF.in_find in H.
+      destruct (M.find x g') eqn:H'.
+      {
+        assert(M.find x g' <> None). {
+          apply opt_lem2 with (y:=l).  assumption.
+        }
+        apply MF.in_find in H0. exfalso.
+        apply Hdisj. easy.
+      }
+      {
+        apply MF.in_find in H.
+        apply opt_lem1 in H. destruct H. unfold both. rewrite H. easy.
+      }
+    } 
+    apply opt_lem1 in Hres.
+    destruct Hres. rewrite H0 in H1. rewrite H1. easy.
+  }
+  {
+    specialize (M.merge_spec1 both (@or_intror (M.In x g) (M.In x g') H)) as H_spc.
+    destruct H_spc. destruct H0. subst.
+    Check MF.in_find.
+    apply MF.in_find.
+    unfold disj_merge.
+    (*prove: both x (M.find x g) (M.find x g') <>=None*)
+    assert(Hres:both x (M.find x g) (M.find x g') <> None).
+    {
+      apply MF.in_find in H.
+      unfold MF.Disjoint in Hdisj.
+      specialize (Hdisj x).
+      apply MF.in_find in H.
+      destruct (M.find x g) eqn:H'.
+      {
+        assert(M.find x g <> None). {
+          apply opt_lem2 with (y:=l).  assumption.
+        }
+        apply MF.in_find in H0. exfalso.
+        apply Hdisj. easy.
+      }
+      {
+        apply MF.in_find in H.
+        apply opt_lem1 in H. destruct H. unfold both. rewrite H. easy.
+      }
+    } 
+    apply opt_lem1 in Hres.
+    destruct Hres. rewrite H0 in H1. rewrite H1. easy.
+  }
+Qed.
+ 
+
+Lemma dom_preservation_6_9: forall g l g', tctxR2 g l g' -> M.Eqdom g g'.
+Proof.
+  intros.
+  split.
+  {
+    induction H.
+    {
+      intros.
+      apply MF.add_in_iff in H1.
+      destruct H1.
+      {
+        subst.
+        apply MF.add_in_iff. left. reflexivity.
+      }
+      {
+        apply MF.empty_in_iff in H1. easy.
+      }
+    }
+    {
+
+      intros.
+      apply MF.add_in_iff in H1.
+      destruct H1.
+      {
+        subst.
+        apply MF.add_in_iff. left. reflexivity.
+      }
+      {
+        apply MF.empty_in_iff in H1. easy.
+      }
+    }
+    {
+      intros.
+      apply M.merge_spec2 in H5.
+      destruct H5.
+      {
+        apply  IHtctxR2_1 in H5.
+        apply spc_merge_spec1.
+        left. easy.
+      }
+      {
+        apply  IHtctxR2_2 in H5.
+        apply spc_merge_spec1.
+        right. easy.
+      }
+    }
+    {
+      intros.
+      rewrite MF.add_in_iff in H1.
+      rewrite MF.add_in_iff.
+      destruct H1.
+      {
+        left. easy.
+      }
+      {
+        right. apply  IHtctxR2. easy.
+      }
+    }
+  }
+  {
+    induction H.
+    {
+      intros.
+      apply MF.add_in_iff in H1.
+      destruct H1.
+      {
+        subst.
+        apply MF.add_in_iff. left. reflexivity.
+      }
+      {
+        apply MF.empty_in_iff in H1. easy.
+      }
+    }
+    {
+
+      intros.
+      apply MF.add_in_iff in H1.
+      destruct H1.
+      {
+        subst.
+        apply MF.add_in_iff. left. reflexivity.
+      }
+      {
+        apply MF.empty_in_iff in H1. easy.
+      }
+    }
+    {
+      intros.
+      apply M.merge_spec2 in H5.
+      destruct H5.
+      {
+        apply  IHtctxR2_1 in H5.
+        apply spc_merge_spec1.
+        left. easy.
+      }
+      {
+        apply  IHtctxR2_2 in H5.
+        apply spc_merge_spec1.
+        right. easy.
+      }
+    }
+    {
+      intros.
+      rewrite MF.add_in_iff in H1.
+      rewrite MF.add_in_iff.
+      destruct H1.
+      {
+        left. easy.
+      }
+      {
+        right. apply  IHtctxR2. easy.
+      }
+    }
+  }
+Qed. 
 
 
 
