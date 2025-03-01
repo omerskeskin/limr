@@ -9,45 +9,18 @@ Open Scope string_scope.
 Definition prt_p:=0.
 Definition prt_q:=1.
 Definition prt_r:=2.
-Check [Some prt_p].
-Check ltt_send.
 
-Check (sint,ltt_end).
 CoFixpoint T_p := ltt_send prt_q [Some (sint,T_p); Some (sint,ltt_end)].
 CoFixpoint T_q := ltt_recv prt_p [Some (sint,T_q); Some (sint, ltt_send prt_r [Some (sint,ltt_end)])].
 Definition T_r := ltt_recv prt_q [Some (sint,ltt_end)].
 
-Definition gamma_lst := [(prt_p,T_p); (prt_q,T_q); (prt_r,T_r)].
-Theorem no_dup_gamma : NoDup (map fst gamma_lst).
+Definition gamma := M.add prt_p T_p (M.add prt_q T_q (M.add prt_r T_r M.empty)).
+Check gamma.
+Lemma red_1 : tctxR gamma (lsend prt_p prt_q (Some sint)) gamma.
 Proof.
-    constructor.
-    {
-        simpl. unfold not. intros. destruct H.
-        inversion H.
-        destruct H. inversion H. auto. 
-    }
-    {
-        constructor. simpl. unfold not. intros. destruct H. inversion H. auto. 
-        constructor. auto. constructor.
-    }
+    apply RvarI.
 Qed.
-
-Ltac triv_app_rvar rv x y H:= apply (rv x _ y  _ _);
-simpl; try intro; repeat (try destruct H; try easy).
-
-Definition gamma := mkCt gamma_lst no_dup_gamma.
-
-Lemma red_1 : tctxR (gamma_lst)  (lsend prt_p prt_q (Some sint)) (gamma_lst).
-Proof.
-    triv_app_rvar RvarO [(prt_p, T_p); (prt_q, T_q)] [(prt_p, T_p); (prt_q, T_q)] H. 
-    triv_app_rvar RvarO [(prt_p, T_p)] [(prt_p, T_p)]  H. 
-    rewrite (ltt_eq T_p).
-    apply Rsend with (n:=0).
-    easy. fold T_p.
-    rewrite <- (ltt_eq T_p).
-    simpl. reflexivity.
-Qed.
-
+Search M.add.
 Lemma red_2 : tctxR (gamma_lst)  (lrecv prt_q prt_p (Some sint)) (gamma_lst).
 Proof.
    triv_app_rvar RvarO [(prt_p, T_p); (prt_q, T_q)] [(prt_p, T_p); (prt_q, T_q)] H.
