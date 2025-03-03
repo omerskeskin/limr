@@ -159,6 +159,29 @@ Proof.
   }
 Qed.
  
+Lemma empty_disjoint : forall (g:tctx), MF.Disjoint g M.empty.
+Proof.
+  intros.
+  unfold MF.Disjoint. unfold not. intros.
+  destruct H. 
+  Search M.In M.empty.
+  apply MF.empty_in_iff in H0. assumption.
+Qed.
+
+Lemma disj_merge_unit: forall (g:tctx), M.Equal g (disj_merge g M.empty (empty_disjoint g)).
+Proof.
+  intros. unfold M.Equal. intros. unfold disj_merge.
+  Check MF.merge_spec1mn.
+  rewrite MF.merge_spec1mn.
+  unfold M.find at 3.
+  simpl. unfold both. 
+  destruct (M.find y g);reflexivity.
+  Check Proper.
+  unfold Proper.
+  unfold "==>".
+  intros. subst. reflexivity. intros. unfold both. simpl. reflexivity. 
+Qed.
+
 
 Lemma dom_preservation_6_9: forall g l g', tctxR g l g' -> M.Eqdom g g'.
 Proof.
@@ -381,5 +404,3 @@ Inductive safe (R: tctx -> Prop): tctx -> Prop :=
   | saimpl:  forall p q c c', R c -> tctxRF (lcomm p q) c c' -> safe R c'.
 
 Definition safeC c := paco1 safe bot1 c.
-
-
