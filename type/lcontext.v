@@ -159,7 +159,39 @@ Proof.
     destruct Hres. rewrite H0 in H1. rewrite H1. easy.
   }
 Qed.
- 
+
+Lemma spc_merge_find1: forall (g1 g2:tctx) p H_disj x, M.find p g1 = Some x ->
+  M.find p (disj_merge g1 g2 H_disj)=Some x.
+Proof.
+  intros.
+  Search M.merge M.find.
+  unfold disj_merge.
+  rewrite MF.merge_spec1mn; try easy.
+  unfold MF.Disjoint in H_disj.
+  specialize (H_disj p).
+  destruct (M.find p g2) eqn:H_2. 2: {rewrite H. simpl. reflexivity. }
+  apply opt_lem2 in H.
+  apply opt_lem2 in H_2.
+  apply MF.in_find in H.
+  apply MF.in_find in H_2. exfalso. exact (H_disj (conj H H_2)). 
+Qed.
+
+Lemma spc_merge_find2: forall (g1 g2:tctx) p H_disj x, M.find p g2 = Some x ->
+  M.find p (disj_merge g1 g2 H_disj)=Some x.
+Proof.
+  intros.
+  Search M.merge M.find.
+  unfold disj_merge.
+  rewrite MF.merge_spec1mn; try easy.
+  unfold MF.Disjoint in H_disj.
+  specialize (H_disj p).
+  destruct (M.find p g1) eqn:H_2. 2: {rewrite H. simpl. reflexivity. }
+  apply opt_lem2 in H.
+  apply opt_lem2 in H_2.
+  apply MF.in_find in H.
+  apply MF.in_find in H_2. exfalso. exact (H_disj (conj H_2 H)). 
+Qed.
+
 Lemma empty_disjoint : forall (g:tctx), MF.Disjoint g M.empty.
 Proof.
   intros.
@@ -420,11 +452,163 @@ Proof.
 Qed.  
 
 
-Lemma tctx_lcomm_inv_1 : forall g p q g', tctxR g (lcomm p q) g' ->
-  exists xs ys, (M.find p g=Some (ltt_send q xs))/\
-  (M.find q g=Some (ltt_recv p ys)).
+Lemma tctx_lcomm_inv_1 : forall g p q g' lb, tctxR g lb g' ->
+  (lb=lcomm p q -> (exists xs, M.find p g=Some (ltt_send q xs))/\
+  (exists xs, (M.find q g=Some (ltt_recv p xs)))) /\
+  (forall s, lb=lrecv p q (Some s) ->
+  tctxR g (lrecv p q (Some s)) g' ->
+  exists xs, (M.find p g=Some (ltt_recv q xs)))/\
+  (forall s, lb=lsend p q (Some s) -> 
+  tctxR g (lsend p q (Some s)) g' ->
+  exists xs, (M.find p g=Some (ltt_send q xs))).
 Proof.
   intros.
+  generalize dependent q.
+  generalize dependent p.
+  induction H.
+  {
+    split; [|split]; try (intros; easy).
+    intros.
+    inversion H1. subst.
+    apply tctx_lsend_inv_1 in H2. exact H2.
+  }
+  {
+    split; [|split]; try (intros; easy).
+    intros.
+    inversion H1. subst.
+    apply tctx_lrecv_inv_1 in H2. exact H2.
+  }
+  {
+    split; [|split]. intros. 
+    split.
+    {
+      inversion H5. subst.
+      specialize (IHtctxR1 p0 q0).
+      destruct IHtctxR1 as [IH1_comm  IH2];destruct IH2 as [IH1_recv IH1_sendv].
+      inversion H5. subst.
+      specialize (IH1_sendv s (eq_refl (lsend p q (Some s)))).
+      apply IH1_sendv in H0.
+      destruct H0.
+      exists x.
+      apply spc_merge_find1 with (g2:=g2) (H_disj:=H1) in H0. assumption. reflexivity.
+    }
+    {
+      inversion H5. subst.
+      specialize (IHtctxR2 q0 p0).
+      destruct IHtctxR2 as [IH2_comm  IH2];destruct IH2 as [IH2_recv IH2_sendv].
+      specialize (IH2_recv s' (eq_refl (lrecv q0 p0 (Some s')))).
+      apply IH2_recv in H3. destruct H3. exists x.
+      apply spc_merge_find2 with (g1:=g1) (H_disj:=H1) in H3. assumption.      
+    }
+    1-2:intros; discriminate H5.
+  }
+  {
+    intros.
+    split; [|split].
+    {
+      generalize dependent q.
+      generalize dependent p.
+      intros.
+      subst.
+      specialize (IHtctxR p0 q). 
+      destruct IHtctxR as [IH_comm  IH];destruct IH as [IH_recv IH_sendv].
+      specialize (IH_comm (eq_refl (lcomm p0 q))).
+      split.
+      {
+        destruct IH_comm.
+        destruct H1.
+        exists x.
+        rewrite MF.add_o.
+        destruct (Nat.eq_dec p p0).
+        - subst. apply MF.not_mem_find in H0. rewrite H1 in H0. discriminate H0.
+        - assumption.
+      }
+      {
+        destruct IH_comm.
+        destruct H2.
+        exists x.
+        rewrite MF.add_o.
+        destruct (Nat.eq_dec p q).
+        - subst. apply MF.not_mem_find in H0. rewrite H2 in H0. discriminate H0.
+        - assumption.
+      }
+    }
+    {
+      intros.
+      subst.
+      specialize (IHtctxR p0 q). 
+      destruct IHtctxR as [IH_comm  IH];destruct IH as [IH_recv IH_sendv].
+      specialize (IH_recv s (eq_refl (lrecv p0 q (Some s))) H).
+      destruct IH_recv.
+      exists x.
+      rewrite M.add_spec2. assumption. rewrite MF.not_mem_find in H0.
+      unfold not.
+      intros.
+      subst. rewrite H0 in H1. discriminate H1. 
+    }
+    {
+      intros.
+      subst.
+      specialize (IHtctxR p0 q). 
+      destruct IHtctxR as [IH_comm  IH];destruct IH as [IH_recv IH_sendv].
+      specialize (IH_sendv s (eq_refl (lsend p0 q (Some s))) H).
+      destruct IH_sendv.
+      exists x.
+      rewrite M.add_spec2. assumption. rewrite MF.not_mem_find in H0.
+      unfold not.
+      intros.
+      subst. rewrite H0 in H1. discriminate H1. 
+    }
+  }
+  {
+    intros. split; [|split]. intros. subst.   
+    specialize (IHtctxR p q). 
+    destruct IHtctxR as [IH_comm  IH];destruct IH as [IH_recv IH_sendv].
+    specialize (IH_comm (eq_refl (lcomm p q ))).
+    destruct IH_comm.
+    {
+      split.
+      {
+        destruct H2.
+        exists x.
+        rewrite MF.find_m in H2.
+        exact H2. reflexivity. apply MF.Equal_equiv. assumption. 
+      }
+      {
+        destruct H3.
+        exists x.
+        rewrite MF.find_m in H3.
+        exact H3. reflexivity. apply MF.Equal_equiv. assumption. 
+      }
+    }
+    {
+      intros.
+      specialize (IHtctxR p q). 
+      destruct IHtctxR as [IH_comm  IH];destruct IH as [IH_recv IH_sendv].
+      subst.
+      specialize (IH_recv s (eq_refl (lrecv p q (Some s))) H).
+      destruct IH_recv. exists x.
+      rewrite MF.find_m in H2. exact H2. reflexivity. apply MF.Equal_equiv. assumption.
+    }
+    {
+      
+      intros.
+      specialize (IHtctxR p q). 
+      destruct IHtctxR as [IH_comm  IH];destruct IH as [IH_recv IH_sendv].
+      subst.
+      specialize (IH_sendv s (eq_refl (lsend p q (Some s))) H).
+      destruct IH_sendv. exists x.
+      rewrite MF.find_m in H2. exact H2. reflexivity. apply MF.Equal_equiv. assumption.
+    }
+  }
+  (*split. intros.
+  2:{
+    split. 
+    specialize (tctx_lrecv_inv_1 g p q g' s) as H1. easy.
+    specialize (tctx_lsend_inv_1 g p q g' s) as H1. easy.
+  }
+  induction H.
+
   inversion H.
   {
     subst.
@@ -477,9 +661,8 @@ Proof.
   }
   {
     subst.
-  }
+  }*)
 Qed.  
-
 
 
 CoInductive coseq (A: Type): Type :=

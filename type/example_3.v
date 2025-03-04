@@ -132,8 +132,8 @@ Proof.
     unfold fairness_inner.
     intros.
     assert(H_p:p=prt_p).
-    {
-        admit.
+    {   
+        destruct (Nat.eq_dec p prt_p). assumption.
     }
     assert(H_q:q=prt_q).
     {
