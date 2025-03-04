@@ -601,67 +601,6 @@ Proof.
       rewrite MF.find_m in H2. exact H2. reflexivity. apply MF.Equal_equiv. assumption.
     }
   }
-  (*split. intros.
-  2:{
-    split. 
-    specialize (tctx_lrecv_inv_1 g p q g' s) as H1. easy.
-    specialize (tctx_lsend_inv_1 g p q g' s) as H1. easy.
-  }
-  induction H.
-
-  inversion H.
-  {
-    subst.
-    apply tctx_lsend_inv_1 in H5.
-    apply tctx_lrecv_inv_1 in H7.
-    destruct H5.
-    destruct H7.
-    unfold disj_merge.
-    exists x, x0.
-    Search M.find M.merge.
-    rewrite MF.merge_spec1mn.
-    rewrite MF.merge_spec1mn.
-    split.
-    {
-      rewrite H0. 
-      unfold MF.Disjoint in H1.
-      specialize (H1 p) as H1_s.
-      destruct (M.find p g2) eqn:H_p.
-      {
-        apply opt_lem2 in H_p. 
-        apply MF.in_find in H_p.
-        apply opt_lem2 in H0.
-        apply MF.in_find in H0.
-        set (H_a:=conj H0 H_p).
-        easy.
-      }
-      {
-        simpl. reflexivity.
-      } 
-    }
-    {
-      rewrite H3.
-      unfold MF.Disjoint in H1.
-      pose proof H1 as H_d.
-      specialize (H_d q) as H1_s.
-      destruct (M.find q g1) eqn:H_q.
-      {
-        apply opt_lem2 in H_q.
-        apply MF.in_find in H_q.
-        apply opt_lem2 in H3.
-        apply MF.in_find in H3.
-        set (H_a:=conj  H_q H3).
-        easy.
-      }
-      {
-        simpl. reflexivity.
-      }
-    }
-    1-4:unfold Proper; unfold "==>"; intros; subst; reflexivity.
-  }
-  {
-    subst.
-  }*)
 Qed.  
 
 
