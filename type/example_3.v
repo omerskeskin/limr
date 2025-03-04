@@ -96,23 +96,12 @@ Proof.
         intros.
         unfold disj_merge.
         rewrite MF.merge_spec1mn; try easy.
-        destruct (Nat.eqb y prt_p) eqn:H_y1;[rewrite Nat.eqb_eq in H_y1 | rewrite Nat.eqb_neq in H_y1];
-        destruct(Nat.eqb y prt_q) eqn:H_y2.
-        {
-            rewrite Nat.eqb_eq in H_y2. subst. discriminate H_y2.
-        }
-        {
-            rewrite Nat.eqb_neq in H_y2. subst. unfold M.find. simpl. reflexivity.
-        }
-        {
-            rewrite Nat.eqb_eq in H_y2. subst. unfold M.find. simpl. reflexivity.
-        }
-        {
-            unfold p_only. unfold q_only.
-            rewrite MF.add_o.
-            Compute Nat.eq_dec prt_p y.
-            admit.
-        }
+        unfold p_only. unfold q_only.
+        do 4 rewrite MF.add_o.
+        Search M.find M.empty.
+        rewrite M.empty_spec.
+        destruct (Nat.eq_dec prt_p y); destruct (Nat.eq_dec prt_q y); try (simpl; easy).
+        subst. discriminate.
     }
     apply RvarI; try (unfold M.mem; reflexivity).
     Search MF.Disjoint.
@@ -140,5 +129,15 @@ Proof.
     rewrite (coseq_eq inf_pq_path). simpl.
     pfold.
     constructor.
-    constructor.
+    unfold fairness_inner.
+    intros.
+    assert(H_p:p=prt_p).
+    {
+        admit.
+    }
+    assert(H_q:q=prt_q).
+    {
+        admit.
+    }
+    apply evh. subst. apply immTc.
 Admitted.

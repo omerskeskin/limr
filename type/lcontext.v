@@ -2,6 +2,7 @@
 From Paco Require Import paco pacotac.
 From LIMR Require Import src.expressions src.header type.local.
 Require Import List String Coq.Arith.PeanoNat Morphisms Relations.
+Require Import Coq.Program.Equality.
 Import ListNotations.
 
 
@@ -347,6 +348,138 @@ Proof.
     }
   }
 Qed. 
+
+Lemma tctx_lsend_inv_1 : forall g p q g' s, tctxR g (lsend p q (Some s)) g' ->
+  exists xs, (M.find p g=Some (ltt_send q xs)).
+Proof.
+  intros.
+  dependent induction H.
+  {
+    subst. exists xs. apply M.add_spec1.
+  }
+  {
+    subst.
+    specialize (IHtctxR p q s). 
+    set (H_rf:=eq_refl (lsend p q (Some s))). 
+    apply IHtctxR in H_rf.
+    destruct H_rf.
+    destruct (Nat.eq_dec p p0).
+    {
+      subst. 
+      rewrite MF.not_mem_find in H0. rewrite -> H0 in H1. discriminate H1.
+    }
+    {
+       exists x.
+       apply not_eq_sym in n.
+       apply M.add_spec2 with (m:=g) (e:=T) in n. rewrite H1 in n. assumption.
+    }
+  }
+  {
+    specialize (IHtctxR p q s). 
+    set (H_rf:=eq_refl (lsend p q (Some s))). 
+    apply IHtctxR in H_rf.
+    destruct H_rf. exists x.
+    unfold M.Equal in H0. specialize (H0 p). 
+    rewrite <- H0 in H2. assumption.
+  }
+Qed.  
+
+Lemma tctx_lrecv_inv_1 : forall g p q g' s, tctxR g (lrecv p q (Some s)) g' ->
+  exists xs, (M.find p g=Some (ltt_recv q xs)).
+Proof.
+  intros.
+  dependent induction H.
+  {
+    subst. exists xs. apply M.add_spec1.
+  }
+  {
+    subst.
+    specialize (IHtctxR p q s). 
+    set (H_rf:=eq_refl (lrecv p q (Some s))). 
+    apply IHtctxR in H_rf.
+    destruct H_rf.
+    destruct (Nat.eq_dec p p0).
+    {
+      subst. 
+      rewrite MF.not_mem_find in H0. rewrite -> H0 in H1. discriminate H1.
+    }
+    {
+       exists x.
+       apply not_eq_sym in n.
+       apply M.add_spec2 with (m:=g) (e:=T) in n. rewrite H1 in n. assumption.
+    }
+  }
+  {
+    specialize (IHtctxR p q s). 
+    set (H_rf:=eq_refl (lrecv p q (Some s))). 
+    apply IHtctxR in H_rf.
+    destruct H_rf. exists x.
+    unfold M.Equal in H0. specialize (H0 p). 
+    rewrite <- H0 in H2. assumption.
+  }
+Qed.  
+
+
+Lemma tctx_lcomm_inv_1 : forall g p q g', tctxR g (lcomm p q) g' ->
+  exists xs ys, (M.find p g=Some (ltt_send q xs))/\
+  (M.find q g=Some (ltt_recv p ys)).
+Proof.
+  intros.
+  inversion H.
+  {
+    subst.
+    apply tctx_lsend_inv_1 in H5.
+    apply tctx_lrecv_inv_1 in H7.
+    destruct H5.
+    destruct H7.
+    unfold disj_merge.
+    exists x, x0.
+    Search M.find M.merge.
+    rewrite MF.merge_spec1mn.
+    rewrite MF.merge_spec1mn.
+    split.
+    {
+      rewrite H0. 
+      unfold MF.Disjoint in H1.
+      specialize (H1 p) as H1_s.
+      destruct (M.find p g2) eqn:H_p.
+      {
+        apply opt_lem2 in H_p. 
+        apply MF.in_find in H_p.
+        apply opt_lem2 in H0.
+        apply MF.in_find in H0.
+        set (H_a:=conj H0 H_p).
+        easy.
+      }
+      {
+        simpl. reflexivity.
+      } 
+    }
+    {
+      rewrite H3.
+      unfold MF.Disjoint in H1.
+      pose proof H1 as H_d.
+      specialize (H_d q) as H1_s.
+      destruct (M.find q g1) eqn:H_q.
+      {
+        apply opt_lem2 in H_q.
+        apply MF.in_find in H_q.
+        apply opt_lem2 in H3.
+        apply MF.in_find in H3.
+        set (H_a:=conj  H_q H3).
+        easy.
+      }
+      {
+        simpl. reflexivity.
+      }
+    }
+    1-4:unfold Proper; unfold "==>"; intros; subst; reflexivity.
+  }
+  {
+    subst.
+  }
+Qed.  
+
 
 
 CoInductive coseq (A: Type): Type :=
