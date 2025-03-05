@@ -486,11 +486,11 @@ Proof.
       specialize (IHtctxR1 p0 q0).
       destruct IHtctxR1 as [IH1_comm  IH2];destruct IH2 as [IH1_recv IH1_sendv].
       inversion H5. subst.
-      specialize (IH1_sendv s (eq_refl (lsend p q (Some s)))).
+      specialize (IH1_sendv s (eq_refl (lsend p0 q0 (Some s)))).
       apply IH1_sendv in H0.
       destruct H0.
       exists x.
-      apply spc_merge_find1 with (g2:=g2) (H_disj:=H1) in H0. assumption. reflexivity.
+      apply spc_merge_find1 with (g2:=g2) (H_disj:=H1) in H0. assumption.
     }
     {
       inversion H5. subst.

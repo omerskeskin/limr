@@ -134,10 +134,80 @@ Proof.
     assert(H_p:p=prt_p).
     {   
         destruct (Nat.eq_dec p prt_p). assumption.
+        inversion H. subst. inversion H1.
+        specialize (tctx_lcomm_inv_1 gamma p q x (lcomm p q)).
+        intros.
+        apply H2 in H0.
+        destruct H0 as [H_comm  Hh];destruct Hh as [H_recv  Hsend].
+        assert(H_eq: lcomm p q =lcomm p q). reflexivity.
+        apply  H_comm in H_eq.
+        destruct H_eq.
+        destruct H0.
+        destruct (Nat.eq_dec p prt_p);
+        destruct (Nat.eq_dec p prt_q);
+        destruct (Nat.eq_dec p prt_r); try (subst; easy).
+        {
+            pose proof H0 as H_t.
+            unfold gamma in H0.
+            clear H3.
+            rewrite M.add_spec2 in H0; try easy.
+            rewrite M.add_spec2 in H0.
+            rewrite M.add_spec2 in H0.
+            rewrite M.empty_spec in H0. discriminate H0. easy.
+            unfold gamma in H_t. subst. 
+            rewrite M.add_spec2 in H_t.
+            rewrite M.add_spec1 in H_t.
+            rewrite (ltt_eq T_q) in H_t.
+            simpl in H_t.
+            discriminate H_t. try easy.
+        }
+        {
+            unfold gamma in H0.
+            rewrite M.add_spec2 in H0.
+            rewrite M.add_spec2 in H0.
+            rewrite M.add_spec2 in H0.
+            rewrite M.empty_spec in H0. discriminate H0. 
+            easy. easy. easy. 
+        }
     }
     assert(H_q:q=prt_q).
     {
-        admit.
+        destruct (Nat.eq_dec q prt_q). assumption.
+        inversion H.
+        subst. inversion H1.
+        specialize (tctx_lcomm_inv_1 gamma prt_p q x (lcomm prt_p q)).
+        intros.
+        apply H2 in H0.
+        destruct H0 as [H_comm  Hh];destruct Hh as [H_recv  Hsend].
+        assert(H_eq: lcomm prt_p q =lcomm prt_p q). reflexivity.
+        apply  H_comm in H_eq.
+        destruct H_eq.
+        destruct H3.
+        destruct (Nat.eq_dec q prt_p);
+        destruct (Nat.eq_dec q prt_q);
+        destruct (Nat.eq_dec q prt_r); try (subst; easy).
+        {
+            pose proof H3 as H_t.
+            unfold gamma in H3.
+            rewrite M.add_spec2 in H3; try easy.
+            rewrite M.add_spec2 in H3.
+            rewrite M.add_spec2 in H3.
+            rewrite M.empty_spec in H3. discriminate H3. easy. easy.
+            subst.
+            unfold gamma in H_t. 
+            rewrite M.add_spec1 in H_t.
+            rewrite (ltt_eq T_p) in H_t.
+            simpl in H_t. discriminate H_t.
+        }
+        {
+            unfold gamma in H3.
+            rewrite M.add_spec2 in H3.
+            rewrite M.add_spec2 in H3.
+            rewrite M.add_spec2 in H3.
+            rewrite M.empty_spec in H3. discriminate H3. 
+            easy. easy. easy. 
+        }
     }
     apply evh. subst. apply immTc.
-Admitted.
+    right. assumption.
+Qed.
