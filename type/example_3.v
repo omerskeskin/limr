@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect.seq all_ssreflect.
 From Paco Require Import paco pacotac.
-From LIMR Require Import src.expressions src.header type.local type.lcontext.
+From LIMR Require Import src.expressions src.header type.local type.lcontext type.path_props .
 Require Import List String Coq.Arith.PeanoNat Morphisms Relations.
 Import ListNotations. 
 Print ltt.

@@ -4,4 +4,5 @@ src/expressions.v
 src/header.v
 type/local.v
 type/lcontext.v
+type/path_props.v
 process/processes.v

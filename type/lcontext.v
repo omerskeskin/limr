@@ -25,20 +25,8 @@ Definition both (z: nat) (o:option ltt) (o':option ltt) :=
    | _,_            => None
  end.
 
-(*
-Definition e1 := M.add 0 ltt_end (M.add 1 ltt_end M.empty).
-Definition e2 := M.add 2 (ltt_send 1 [Some(sint, ltt_end)]) (M.add 4 ltt_end M.empty).
-Definition e3 := M.merge both e1 e2.
-Compute M.bindings e1.
-Compute M.bindings e2.
-Compute M.bindings e3.
-
-Print M.
- *)
-
 Definition disj_merge (g1 g2:tctx) (H:MF.Disjoint g1 g2) : tctx := 
   M.merge both g1 g2.  
-
 
 
 Inductive tctxR: tctx -> label -> tctx -> Prop :=
@@ -82,20 +70,8 @@ Proof.
   intros; destruct x; try easy.  
 Qed.
 
-Lemma in_find_sm : forall x (m:tctx), M.In x m <-> exists y, M.find x m =Some y. 
-Proof.
-  intros.
-  split.
-  {
-    intros. apply MF.in_find in H. apply opt_lem1 in H. easy.
-  }
-  {
-    intros.
-    destruct H.
-    apply opt_lem2 in H.
-    apply MF.in_find in H. easy.
-  }
-Qed.
+
+(*superseded by spc_merge_find*)
 Lemma spc_merge_spec1: forall (g g': tctx) x (Hdisj: MF.Disjoint g g'),  M.In x g\/ M.In x g' -> (M.In x (disj_merge g g' Hdisj)).
 Proof.
   intros.
@@ -381,6 +357,8 @@ Proof.
   }
 Qed. 
 
+(*these are basically artifacts, they are only used in the proof of tctx_lcomm_inv1 
+and they can be removed once those references are removed*)
 Lemma tctx_lsend_inv_1 : forall g p q g' s, tctxR g (lsend p q (Some s)) g' ->
   exists xs, (M.find p g=Some (ltt_send q xs)).
 Proof.
@@ -603,7 +581,7 @@ Proof.
   }
 Qed.  
 
-
+(*
 CoInductive coseq (A: Type): Type :=
   | conil : coseq A
   | cocons: A -> coseq A -> coseq A.
@@ -659,3 +637,4 @@ Inductive safe (R: tctx -> Prop): tctx -> Prop :=
   | saimpl:  forall p q c c', R c -> tctxRF (lcomm p q) c c' -> safe R c'.
 
 Definition safeC c := paco1 safe bot1 c.
+*)
