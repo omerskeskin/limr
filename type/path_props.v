@@ -38,22 +38,40 @@ Definition alwaysP := @alwaysG (tctx*label).
 
 Definition alwaysC F p := paco1 (alwaysP F) bot1 p.
 
-Inductive CextP (F: tctx -> Prop): Path -> Prop :=
-  | holdc: forall c l p, F c -> CextP F (cocons (c,l) p).
+Definition enabled (F: tctx -> Prop) (pt: Path): Prop :=
+  match pt with
+    | cocons (g, l) xs => F g
+    | _                => False 
+  end.
 
-Inductive immTrans: part -> part -> Path -> Prop :=
-  | immTc: forall p q c pt, immTrans p q (cocons (c,(lcomm p q)) pt).
+Definition headRecv (p q: part) (pt: Path): Prop :=
+  match pt with
+    | cocons (g, (lrecv p q (Some s))) xs => True
+    | _                                   => False 
+  end.
 
-Definition fairness_inner (pt: Path): Prop :=
-  forall p q, CextP (tctxRE (lcomm p q)) pt -> eventually (immTrans p q) pt.
+Definition headSend (p q: part) (pt: Path): Prop :=
+  match pt with
+    | cocons (g, (lsend p q (Some s))) xs => True
+    | _                                   => False 
+  end.
 
-Definition fair_gfp := alwaysC (fairness_inner).
+Definition headComm (p q: part) (pt: Path): Prop :=
+  match pt with
+    | cocons (g, (lcomm p q)) xs => True
+    | _                          => False 
+  end.
 
-Definition liveness_inner (pt: Path): Prop :=
-  (forall p q s, CextP (tctxRE (lsend p q (Some s))) pt -> eventually (immTrans p q) pt) /\
-  (forall p q s, CextP (tctxRE (lrecv q p (Some s))) pt -> eventually (immTrans p q) pt).
+Definition fairPath (pt: Path): Prop :=
+  forall p q, enabled (tctxRE (lcomm p q)) pt -> eventually (headComm p q) pt.
 
-Definition live_gfp := alwaysC (liveness_inner).
+Definition fairness := alwaysC fairPath.
+
+Inductive livePath (pt: Path): Prop :=
+  | L1: forall p q s, enabled (tctxRE (lsend p q (Some s))) pt -> eventually (headComm p q) pt -> livePath pt
+  | L2: forall p q s, enabled (tctxRE (lrecv q p (Some s))) pt -> eventually (headComm p q) pt -> livePath pt.
+
+Definition liveness := alwaysC livePath.
 
 Inductive safe (R: tctx -> Prop): tctx -> Prop :=
   | sasr  : forall p q s s' c, tctxRE (lsend p q (Some s)) c -> tctxRE (lrecv q p (Some s')) c ->

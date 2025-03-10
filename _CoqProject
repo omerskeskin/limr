@@ -5,4 +5,5 @@ src/header.v
 type/local.v
 type/lcontext.v
 type/path_props.v
+type/example_3.v
 process/processes.v

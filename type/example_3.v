@@ -122,22 +122,23 @@ Qed.
 
 CoFixpoint inf_pq_path := cocons (gamma,(lcomm prt_p prt_q)) inf_pq_path.
 
-Theorem inf_pq_path_fair : fair_gfp inf_pq_path.
+Theorem inf_pq_path_fair : fairness inf_pq_path.
 Proof.
     red.
     pcofix CIH.
     rewrite (coseq_eq inf_pq_path). simpl.
     pfold.
     constructor.
-    unfold fairness_inner.
+    unfold fairPath.
     intros.
     assert(H_p:p=prt_p).
     {   
         destruct (Nat.eq_dec p prt_p). assumption.
-        inversion H. subst. inversion H1.
+        simpl in H.
+        inversion H. subst. 
         specialize (tctx_lcomm_inv_1 gamma p q x (lcomm p q)).
         intros.
-        apply H2 in H0.
+        apply H1 in H0.
         destruct H0 as [H_comm  Hh];destruct Hh as [H_recv  Hsend].
         assert(H_eq: lcomm p q =lcomm p q). reflexivity.
         apply  H_comm in H_eq.
@@ -149,7 +150,7 @@ Proof.
         {
             pose proof H0 as H_t.
             unfold gamma in H0.
-            clear H3.
+            clear H2.
             rewrite M.add_spec2 in H0; try easy.
             rewrite M.add_spec2 in H0.
             rewrite M.add_spec2 in H0.
@@ -173,26 +174,27 @@ Proof.
     assert(H_q:q=prt_q).
     {
         destruct (Nat.eq_dec q prt_q). assumption.
+        simpl in H.
         inversion H.
-        subst. inversion H1.
+        subst.
         specialize (tctx_lcomm_inv_1 gamma prt_p q x (lcomm prt_p q)).
         intros.
-        apply H2 in H0.
+        apply H1 in H0.
         destruct H0 as [H_comm  Hh];destruct Hh as [H_recv  Hsend].
         assert(H_eq: lcomm prt_p q =lcomm prt_p q). reflexivity.
         apply  H_comm in H_eq.
         destruct H_eq.
-        destruct H3.
+        destruct H2.
         destruct (Nat.eq_dec q prt_p);
         destruct (Nat.eq_dec q prt_q);
         destruct (Nat.eq_dec q prt_r); try (subst; easy).
         {
-            pose proof H3 as H_t.
-            unfold gamma in H3.
-            rewrite M.add_spec2 in H3; try easy.
-            rewrite M.add_spec2 in H3.
-            rewrite M.add_spec2 in H3.
-            rewrite M.empty_spec in H3. discriminate H3. easy. easy.
+            pose proof H2 as H_t.
+            unfold gamma in H2.
+            rewrite M.add_spec2 in H2; try easy.
+            rewrite M.add_spec2 in H2.
+            rewrite M.add_spec2 in H2.
+            rewrite M.empty_spec in H2. discriminate H2. easy. easy.
             subst.
             unfold gamma in H_t. 
             rewrite M.add_spec1 in H_t.
@@ -200,14 +202,15 @@ Proof.
             simpl in H_t. discriminate H_t.
         }
         {
-            unfold gamma in H3.
-            rewrite M.add_spec2 in H3.
-            rewrite M.add_spec2 in H3.
-            rewrite M.add_spec2 in H3.
-            rewrite M.empty_spec in H3. discriminate H3. 
+            unfold gamma in H2.
+            rewrite M.add_spec2 in H2.
+            rewrite M.add_spec2 in H2.
+            rewrite M.add_spec2 in H2.
+            rewrite M.empty_spec in H2. discriminate H2. 
             easy. easy. easy. 
         }
     }
-    apply evh. subst. apply immTc.
+    apply evh. subst. simpl. easy.
     right. assumption.
 Qed.
+
