@@ -9,14 +9,14 @@ Open Scope string_scope.
 Definition prt_p:=0.
 Definition prt_q:=1.
 Definition prt_r:=2.
-
-CoFixpoint T_p := ltt_send prt_q [Some (sint,T_p); Some (sint,ltt_end)].
-CoFixpoint T_q := ltt_recv prt_p [Some (sint,T_q); Some (sint, ltt_send prt_r [Some (sint,ltt_end)])].
-Definition T_r := ltt_recv prt_q [Some (sint,ltt_end)].
+(*adopt the convention that all opts have the same length*)
+CoFixpoint T_p := ltt_send prt_q [Some (sint,T_p); Some (sint,ltt_end); None].
+CoFixpoint T_q := ltt_recv prt_p [Some (sint,T_q); Some (sint, ltt_send prt_r [Some (sint,ltt_end)]); None].
+Definition T_r := ltt_recv prt_q [None;None; Some (sint,ltt_end)].
 
 Definition gamma := M.add prt_p T_p (M.add prt_q T_q (M.add prt_r T_r M.empty)).
 
-Lemma red_1 : tctxR gamma (lsend prt_p prt_q (Some sint)) gamma.
+Lemma red_1 : tctxR gamma (lsend prt_p prt_q (Some sint) 0) gamma.
 Proof.
     set (gmp:=(M.add prt_q T_q (M.add prt_r T_r (M.add prt_p T_p M.empty)))).
     assert (H_perm:M.Equal gamma gmp).
@@ -36,7 +36,7 @@ Proof.
         reflexivity.
     }
 Qed.
-Lemma red_2 : tctxR gamma  (lrecv prt_q prt_p (Some sint)) (gamma).
+Lemma red_2 : tctxR gamma  (lrecv prt_q prt_p (Some sint) 0) (gamma).
 Proof.
     set (gmp:=(M.add prt_p T_p (M.add prt_r T_r (M.add prt_q T_q M.empty)))).
     assert (H_perm:M.Equal gamma gmp). easy.
@@ -53,7 +53,7 @@ Proof.
     }
 Qed.
 
-Lemma red_3 : tctxR gamma  (lcomm prt_p prt_q) gamma.
+Lemma red_3 : tctxR gamma  (lcomm prt_p prt_q 0) gamma.
 Proof.
     set (gmp:=(M.add prt_r T_r (M.add prt_p T_p (M.add prt_q T_q M.empty)))).
     assert (H_perm:M.Equal gamma gmp). easy.
@@ -75,7 +75,7 @@ Proof.
             apply MF.not_in_empty in H. assumption.
         }
     }
-    assert(p_trans:tctxR p_only (lsend prt_p prt_q (Some sint)) p_only).
+    assert(p_trans:tctxR p_only (lsend prt_p prt_q (Some sint) 0) p_only).
     {
         unfold p_only.
         rewrite (ltt_eq T_p).
@@ -83,7 +83,7 @@ Proof.
         rewrite <- (ltt_eq T_p). reflexivity.
     }
     
-    assert(q_trans:tctxR q_only (lrecv prt_q prt_p (Some sint)) q_only).
+    assert(q_trans:tctxR q_only (lrecv prt_q prt_p (Some sint) 0) q_only).
     {
         unfold q_only.
         rewrite (ltt_eq T_q).
@@ -112,15 +112,15 @@ Proof.
     apply MF.Equal_equiv. assumption.
 Qed.
 
-Lemma red_4 : tctxR gamma (lrecv prt_r prt_q (Some sint)) (M.add prt_p  T_p (M.add prt_q T_q (M.add prt_r ltt_end M.empty))).
+Lemma red_4 : tctxR gamma (lrecv prt_r prt_q (Some sint) 2) (M.add prt_p  T_p (M.add prt_q T_q (M.add prt_r ltt_end M.empty))).
 Proof.
     apply RvarI.
     apply RvarI.
     rewrite (ltt_eq T_r). simpl.
-    apply Rrecv with (n:=0). easy. simpl. reflexivity. 1-2:unfold M.mem. 1-2:reflexivity.
+    apply Rrecv with (n:=2). easy. simpl. reflexivity. 1-2:unfold M.mem. 1-2:reflexivity.
 Qed.
 
-CoFixpoint inf_pq_path := cocons (gamma,(lcomm prt_p prt_q)) inf_pq_path.
+CoFixpoint inf_pq_path := cocons (gamma,(lcomm prt_p prt_q) 0) inf_pq_path.
 
 Theorem inf_pq_path_fair : fairness inf_pq_path.
 Proof.
@@ -136,11 +136,12 @@ Proof.
         destruct (Nat.eq_dec p prt_p). assumption.
         simpl in H.
         inversion H. subst. 
-        specialize (tctx_lcomm_inv_1 gamma p q x (lcomm p q)).
+        specialize (tctx_lcomm_inv_1 gamma p q x (lcomm p q n)).
         intros.
+        specialize (H1 n).
         apply H1 in H0.
         destruct H0 as [H_comm  Hh];destruct Hh as [H_recv  Hsend].
-        assert(H_eq: lcomm p q =lcomm p q). reflexivity.
+        assert(H_eq: lcomm p q n =lcomm p q n). reflexivity.
         apply  H_comm in H_eq.
         destruct H_eq.
         destruct H0.
@@ -177,11 +178,12 @@ Proof.
         simpl in H.
         inversion H.
         subst.
-        specialize (tctx_lcomm_inv_1 gamma prt_p q x (lcomm prt_p q)).
+        specialize (tctx_lcomm_inv_1 gamma prt_p q x (lcomm prt_p q n)).
         intros.
+        specialize (H1 n).
         apply H1 in H0.
         destruct H0 as [H_comm  Hh];destruct Hh as [H_recv  Hsend].
-        assert(H_eq: lcomm prt_p q =lcomm prt_p q). reflexivity.
+        assert(H_eq: lcomm prt_p q n=lcomm prt_p q n). reflexivity.
         apply  H_comm in H_eq.
         destruct H_eq.
         destruct H2.

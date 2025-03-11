@@ -46,24 +46,24 @@ Definition enabled (F: tctx -> Prop) (pt: Path): Prop :=
 
 Definition headRecv (p q: part) (pt: Path): Prop :=
   match pt with
-    | cocons (g, (lrecv a b (Some s))) xs => if andb (Nat.eqb p a) (Nat.eqb q b) then True else False
+    | cocons (g, (lrecv a b (Some s) n)) xs => if andb (Nat.eqb p a) (Nat.eqb q b) then True else False
     | _                                   => False 
   end.
 
 Definition headSend (p q: part) (pt: Path): Prop :=
   match pt with
-    | cocons (g, (lsend a b (Some s))) xs => if andb (Nat.eqb p a) (Nat.eqb q b) then True else False
+    | cocons (g, (lsend a b (Some s) n)) xs => if andb (Nat.eqb p a) (Nat.eqb q b) then True else False
     | _                                   => False 
   end.
 
 Definition headComm (p q: part) (pt: Path): Prop :=
   match pt with
-    | cocons (g, (lcomm a b)) xs => if andb (Nat.eqb p a) (Nat.eqb q b) then True else False
+    | cocons (g, (lcomm a b n)) xs => if andb (Nat.eqb p a) (Nat.eqb q b) then True else False
     | _                          => False 
   end.
 
 Inductive immTrans: part -> part -> Path -> Prop :=
-  | immTc: forall p q c pt, immTrans p q (cocons (c,(lcomm p q)) pt).
+  | immTc: forall p q c pt n, immTrans p q (cocons (c,(lcomm p q n)) pt).
 
 Lemma eqvL: forall p q pt, immTrans p q pt -> headComm p q pt.
 Proof. intros. induction H. cbn. rewrite !Nat.eqb_refl. easy. Qed.
@@ -87,13 +87,13 @@ Proof. intros.
 Qed.
 
 Definition fairPath (pt: Path): Prop :=
-  forall p q, enabled (tctxRE (lcomm p q)) pt -> eventually (headComm p q) pt.
+  forall p q n, enabled (tctxRE (lcomm p q n)) pt ->  eventually (headComm p q) pt.
 
 Definition fairness := alwaysC fairPath.
-
+(*
 Inductive livePath (pt: Path): Prop :=
-  | L1: forall p q s, enabled (tctxRE (lsend p q (Some s))) pt -> eventually (headComm p q) pt -> livePath pt
-  | L2: forall p q s, enabled (tctxRE (lrecv q p (Some s))) pt -> eventually (headComm p q) pt -> livePath pt.
+  | L1: forall p q s, enabled (tctxRE (lsend p q (Some s) n)) pt -> eventually (headComm p q) pt -> livePath pt
+  | L2: forall p q s, enabled (tctxRE (lrecv q p (Some s)) n) pt -> eventually (headComm p q) pt -> livePath pt.
 
 Definition liveness := alwaysC livePath.
 
@@ -103,3 +103,4 @@ Inductive safe (R: tctx -> Prop): tctx -> Prop :=
   | saimpl:  forall p q c c', R c -> tctxRF (lcomm p q) c c' -> safe R c'.
 
 Definition safeC c := paco1 safe bot1 c.
+*)
