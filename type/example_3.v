@@ -214,19 +214,3 @@ Proof.
     right. assumption.
 Qed.
 
-Theorem inf_pq_path_fairA: fairness inf_pq_path.
-Proof.
-    red.
-    pcofix CIH.
-    rewrite (coseq_eq inf_pq_path). simpl.
-    pfold.
-    constructor.
-    unfold fairPath.
-    intros.
-    simpl in H.
-    constructor.
-    simpl. easy.
-    right.
-    easy.
-Qed.
-    

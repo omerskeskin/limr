@@ -46,21 +46,45 @@ Definition enabled (F: tctx -> Prop) (pt: Path): Prop :=
 
 Definition headRecv (p q: part) (pt: Path): Prop :=
   match pt with
-    | cocons (g, (lrecv p q (Some s))) xs => True
+    | cocons (g, (lrecv a b (Some s))) xs => if andb (Nat.eqb p a) (Nat.eqb q b) then True else False
     | _                                   => False 
   end.
 
 Definition headSend (p q: part) (pt: Path): Prop :=
   match pt with
-    | cocons (g, (lsend p q (Some s))) xs => True
+    | cocons (g, (lsend a b (Some s))) xs => if andb (Nat.eqb p a) (Nat.eqb q b) then True else False
     | _                                   => False 
   end.
 
 Definition headComm (p q: part) (pt: Path): Prop :=
   match pt with
-    | cocons (g, (lcomm p q)) xs => True
+    | cocons (g, (lcomm a b)) xs => if andb (Nat.eqb p a) (Nat.eqb q b) then True else False
     | _                          => False 
   end.
+
+Inductive immTrans: part -> part -> Path -> Prop :=
+  | immTc: forall p q c pt, immTrans p q (cocons (c,(lcomm p q)) pt).
+
+Lemma eqvL: forall p q pt, immTrans p q pt -> headComm p q pt.
+Proof. intros. induction H. cbn. rewrite !Nat.eqb_refl. easy. Qed.
+
+Lemma eqvR: forall p q pt, headComm p q pt -> immTrans p q pt.
+Proof. intros.
+       destruct pt. simpl in H. easy.
+       simpl in H.
+       destruct p0, l.
+       easy.
+       easy.
+       case_eq((p =? n)); intros.
+       + rewrite Nat.eqb_eq in H0.
+         subst.
+         case_eq((q =? n0)); intros.
+         ++ rewrite Nat.eqb_eq in H0.
+            subst.
+            constructor.
+         ++ rewrite H0 in H. rewrite Nat.eqb_refl in H. simpl in H. easy.
+       + rewrite H0 in H. simpl in H. easy.
+Qed.
 
 Definition fairPath (pt: Path): Prop :=
   forall p q, enabled (tctxRE (lcomm p q)) pt -> eventually (headComm p q) pt.
