@@ -7,6 +7,7 @@ Import ListNotations.
 Section ltt.
 
 
+
 CoInductive ltt: Type :=
   | ltt_end : ltt
   | ltt_recv: part -> list (option(sort*ltt)) -> ltt

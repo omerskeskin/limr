@@ -430,6 +430,7 @@ Proof.
 Qed.  
 
 
+
 Lemma tctx_lcomm_inv_1 : forall g p q g' lb nn, tctxR g lb g' ->
   (lb=lcomm p q nn -> (exists xs, M.find p g=Some (ltt_send q xs))/\
   (exists xs, (M.find q g=Some (ltt_recv p xs)))) /\
@@ -581,6 +582,135 @@ Proof.
   }
 Qed.  
 
+Ltac red_inv_destruct H := 
+  destruct H as [H_comm  H'']; destruct H'' as [H_rec H_send].
+
+Ltac red_inv_use H s a :=
+  let H_ueq := fresh in set (H_ueq := eq_refl a); apply (H s) in H_ueq.
+
+Fixpoint restrict_ctx (g:tctx) (prts: seq.seq nat) : tctx :=
+  match prts with 
+    | [] => M.empty
+    | (x::xs) => 
+      match M.find x g with
+      | (Some t) => M.add x t (restrict_ctx (M.remove x g) xs)
+      | _ =>(restrict_ctx (M.remove x g) xs) end
+  end.
+Check M.In.
+(*
+Lemma lem_6_10 : forall g l g' p q n, tctxR g l g' -> forall r, 
+    M.In r g -> 
+    (
+      (exists s, l=lsend p q s n) \/
+      (exists s, l=lrecv p q s n) \/
+      (l=lcomm p q n)
+    ) ->
+    p <> r ->
+    q <> r ->
+     M.find r g = M.find r g'.
+Proof.
+  intros.
+  induction H.
+  { 
+    destruct H1 as [Hsend | [Hrec | Hcomm]];try (destruct Hrec as [x' Hrec]; inversion Hrec); try (inversion Hcomm).
+    {
+      destruct Hsend as [x Hsend].
+      inversion Hsend. subst.
+      apply MF.add_in_iff in H0.
+      destruct H0.
+        + apply H2 in H0. easy.
+        + apply MF.not_in_empty in H0. easy. 
+    }
+  }
+  {
+    destruct H1 as [Hsend | [Hrec | Hcomm]];try (destruct Hsend as [x' Hsend];inversion Hsend); try (inversion Hcomm).
+    {
+      destruct Hrec as [x Hrec].
+      inversion Hrec. subst.
+      apply MF.add_in_iff in H0. 
+      destruct H0.
+        + apply H2 in H0. easy.
+        + apply MF.not_in_empty in H0. easy. 
+    }
+  }
+  {
+    intros.
+    Search disj_merge.
+    Search M.merge M.find.
+    unfold disj_merge in H0.
+    pose proof H1 as H1'.
+    destruct H1 as [Hrec|[Hsend|Hcomm]]; try (destruct Hsend as [x Hsend];inversion Hsend);try (destruct Hrec as [x Hrec]; inversion Hrec).
+    apply M.merge_spec2 in H0.
+    destruct H0.
+    {
+      inversion Hcomm. subst.
+      pose proof H0 as H_r_in_g1.
+      apply IHtctxR1 in H0.
+      unfold disj_merge.
+      repeat (rewrite MF.merge_spec1mn).
+      rewrite <- H0.
+      Search MF.Disjoint.
+      destruct (M.find r g2) eqn:Hfind_r.
+      {
+        unfold MF.Disjoint in H4.
+        apply opt_lem2 in Hfind_r.
+        apply MF.in_find in Hfind_r.
+        specialize (H4 r (conj H_r_in_g1 Hfind_r)). 
+        easy.                
+      }
+      {
+        unfold both. 
+        rewrite MF.in_find in H_r_in_g1.
+        apply opt_lem1 in H_r_in_g1. 
+        destruct H_r_in_g1. rewrite H1.
+        apply dom_preservation_6_9 in H7.
+        unfold M.Eqdom in H7. 
+        Search M.find M.In.
+        rewrite <- MF.not_in_find in Hfind_r.
+        specialize (H7 r).
+        rewrite H7 in Hfind_r.
+        rewrite MF.not_in_find in Hfind_r.
+        rewrite Hfind_r. reflexivity.
+      }
+      1-4: (try easy).
+      left. exists (Some s). reflexivity. 
+    }
+    {
+      inversion Hcomm. subst.
+      pose proof H0 as H_r_in_g2.
+      apply IHtctxR2 in H0.
+      unfold disj_merge.
+      repeat (rewrite MF.merge_spec1mn).
+      rewrite <- H0.
+      Search MF.Disjoint.
+      destruct (M.find r g1) eqn:Hfind_r.
+      {
+        unfold MF.Disjoint in H4.
+        apply opt_lem2 in Hfind_r.
+        apply MF.in_find in Hfind_r.
+        specialize (H4 r (conj  Hfind_r H_r_in_g2)). 
+        easy.                
+      }
+      {
+        unfold both. 
+        rewrite MF.in_find in H_r_in_g2.
+        apply opt_lem1 in H_r_in_g2. 
+        destruct H_r_in_g2. rewrite H1.
+        apply dom_preservation_6_9 in H6.
+        unfold M.Eqdom in H7. 
+        Search M.find M.In.
+        rewrite <- MF.not_in_find in Hfind_r.
+        specialize (H6 r).
+        rewrite H6 in Hfind_r.
+        rewrite MF.not_in_find in Hfind_r.
+        rewrite Hfind_r. reflexivity.
+      }
+      1-4: (try easy).
+      right. left. exists (Some s'). reflexivity. 
+    }
+  }
+Qed. 
+*)
 (*
 CoInductive coseq (A: Type): Type :=
   | conil : coseq A

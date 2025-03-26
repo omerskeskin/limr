@@ -2,6 +2,7 @@
 
 src/expressions.v
 src/header.v
+src/sim.v
 type/local.v
 type/lcontext.v
 type/path_props.v

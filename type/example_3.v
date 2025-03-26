@@ -11,7 +11,7 @@ Definition prt_q:=1.
 Definition prt_r:=2.
 (*adopt the convention that all opts have the same length*)
 CoFixpoint T_p := ltt_send prt_q [Some (sint,T_p); Some (sint,ltt_end); None].
-CoFixpoint T_q := ltt_recv prt_p [Some (sint,T_q); Some (sint, ltt_send prt_r [Some (sint,ltt_end)]); None].
+CoFixpoint T_q := ltt_recv prt_p [Some (sint,T_q); Some (sint, ltt_send prt_r [None;None;Some (sint,ltt_end)]); None].
 Definition T_r := ltt_recv prt_q [None;None; Some (sint,ltt_end)].
 
 Definition gamma := M.add prt_p T_p (M.add prt_q T_q (M.add prt_r T_r M.empty)).
@@ -216,3 +216,85 @@ Proof.
     right. assumption.
 Qed.
 
+Lemma red_5: tctxR gamma (lsend prt_p prt_q (Some sint) 1) (M.add prt_p ltt_end (M.add prt_q T_q (M.add prt_r T_r M.empty))).
+Proof.
+    set (gmp:=(M.add prt_q T_q (M.add prt_r T_r (M.add prt_p T_p M.empty)))).
+    assert (H_perm:M.Equal gamma gmp). easy.
+    apply Rstruct with (g1':=gmp) (g2' := (M.add prt_q T_q (M.add prt_r T_r (M.add prt_p ltt_end M.empty)))); try easy.
+    unfold gmp.
+    apply RvarI; try (unfold M.mem; reflexivity).
+    + apply RvarI; try (unfold M.mem; reflexivity).
+        - rewrite (ltt_eq T_p). apply Rsend with (n:=1); try easy.
+Qed.
+
+Lemma red_6: tctxR gamma (lrecv prt_q prt_p (Some sint) 1) (M.add prt_p T_p (M.add prt_q (ltt_send prt_r [None;None;Some (sint,ltt_end)]) (M.add prt_r T_r M.empty))).
+Proof.
+    set (gmp:=(M.add prt_p T_p (M.add prt_r T_r (M.add prt_q T_q M.empty)))).
+    assert (H_perm:M.Equal gamma gmp). easy.
+    apply Rstruct with (g1':=gmp) (g2' := (M.add prt_p T_p (M.add prt_r T_r (M.add prt_q (ltt_send prt_r [None;None;Some (sint,ltt_end)]) M.empty)))); try easy.
+    unfold gmp.
+    apply RvarI; try (unfold M.mem; reflexivity).
+    + apply RvarI; try (unfold M.mem; reflexivity).
+        - rewrite (ltt_eq T_q). apply Rrecv with (n:=1); try easy.
+Qed.
+
+Definition gamma' := M.add prt_p ltt_end (M.add prt_q (ltt_send prt_r [None;None;Some (sint,ltt_end)]) (M.add prt_r T_r M.empty)).
+
+Lemma red_7 : tctxR gamma (lcomm prt_p prt_q 1) gamma'.
+Proof.
+    set (p_only := M.add prt_p T_p M.empty).
+    set (q_only := M.add prt_q T_q M.empty).
+    
+    set (p_only' := M.add prt_p ltt_end M.empty).
+    set (q_only' := M.add prt_q (ltt_send prt_r [None;None;Some (sint,ltt_end)]) M.empty).
+    assert(Hp1: tctxR p_only (lsend prt_p prt_q (Some sint) 1) p_only').
+    {
+        unfold p_only.
+        unfold p_only'.
+        rewrite (ltt_eq T_p).
+        apply Rsend with (n:=1); try easy.   
+    }
+    assert(Hq1: tctxR q_only (lrecv prt_q prt_p (Some sint) 1) q_only').
+    {
+        unfold q_only.
+        unfold q_only'.
+        rewrite (ltt_eq T_q).
+        apply Rrecv with (n:=1); try easy.   
+    }
+    assert(H_disj:MF.Disjoint p_only q_only).
+    {
+        unfold MF.Disjoint. unfold not.
+        intros.
+        destruct H.
+        apply MF.add_in_iff in H.
+        destruct H.
+        {
+            subst. apply MF.in_find in H0.
+            unfold M.find in H0. simpl in H0. easy.
+        }
+        {
+            apply MF.not_in_empty in H. assumption.
+        }
+    }
+
+    set (pq := M.add prt_p T_p (M.add prt_q T_q M.empty)).
+    set (pq' := M.add prt_p ltt_end (M.add prt_q (ltt_send prt_r [None;None;Some (sint, ltt_end)]) M.empty)).
+    
+    assert(H_eqn: M.Equal (disj_merge p_only q_only H_disj) (M.add prt_p T_p (M.add prt_q T_q M.empty))).
+    {
+        unfold M.Equal.
+        intros.
+        unfold disj_merge.
+        rewrite MF.merge_spec1mn; try easy.
+        unfold p_only. unfold q_only.
+        do 4 rewrite MF.add_o.
+        Search M.find M.empty.
+        rewrite M.empty_spec.
+        destruct (Nat.eq_dec prt_p y); destruct (Nat.eq_dec prt_q y); try (simpl; easy).
+        subst. discriminate.
+    }
+    assert (Hpq : tctxR pq (lcomm prt_p prt_q 1) pq').
+    {
+     unfold pq. unfold pq'. admit.
+    }
+Abort.

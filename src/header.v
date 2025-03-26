@@ -46,6 +46,7 @@ Inductive multiS {X : Type} (R : relation X) : relation X :=
   | multi_sing : forall (x y : X), R x y -> multiS R x y
   | multi_step : forall (x y z : X), R x y -> multiS R y z -> multiS R x z.
   
+
 Fixpoint onth {A : Type} (n : fin) (lis : list (option A)) : option A :=
   match n with 
     | S m => 
